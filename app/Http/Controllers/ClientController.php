@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class ClientController extends Controller
 {
@@ -19,32 +20,45 @@ class ClientController extends Controller
      * Создает нового клиента.
      */
     public function store(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'name' => 'required|string|max:128',
-        'description' => 'required|string',
-        'inn' => 'required|numeric',
-        'address' => 'required|string',
-        'licence_expired_at' => 'required|date',
-        'is_deleted' => 'required|boolean',
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:128',
+            'description' => 'required|string',
+            'inn' => 'required|numeric',
+            'address' => 'required|string',
+            'licence_expired_at' => 'required|date',
+            'is_deleted' => 'required|boolean',
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 400);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
+
+        $client = new Client();
+        $client->name = $request->name;
+        $client->description = $request->description;
+        $client->inn = $request->inn;
+        $client->address = $request->address;
+        $client->licence_expired_at = $request->licence_expired_at;
+        $client->is_deleted = $request->is_deleted;
+        $client->save();
+
+        // Формируем кастомный ответ
+        return response()->json([
+            'message' => 'Client created successfully.',
+            'client' => [
+                'id' => $client->id,
+                'name' => $client->name,
+                'description' => $client->description,
+                'inn' => $client->inn,
+                'address' => $client->address,
+                'licence_expired_at' => $client->licence_expired_at,
+                'is_deleted' => $client->is_deleted,
+                'created_at' => $client->created_at,
+                'updated_at' => $client->updated_at,
+            ]
+        ], 201);
     }
-
-    $client = new Client();
-    $client->name = $request->name;
-    $client->description = $request->description;
-    $client->inn = $request->inn;
-    $client->address = $request->address;
-    $client->licence_expired_at = $request->licence_expired_at;
-    $client->is_deleted = $request->is_deleted;
-    $client->save();
-
-    return response()->json($client, 201);
-}
-
 
     /**
      * Отображает конкретного клиента по ID.
@@ -55,10 +69,18 @@ class ClientController extends Controller
     }
 
     /**
-     * Обновляет данные клиента по ID.
+     * Обновляет данные клиента по UUID.
      */
-    public function update(Request $request, Client $client)
+    public function update(Request $request, $clientUuid)
     {
+        // Ищем клиента по UUID
+        $client = Client::where('id', $clientUuid)->first();
+
+        if (!$client) {
+            return response()->json(['error' => 'Client not found'], 404);
+        }
+
+        // Валидируем входные данные
         $validated = $request->validate([
             'name' => 'required|string|max:128',
             'description' => 'nullable|string',
@@ -68,16 +90,27 @@ class ClientController extends Controller
             'is_deleted' => 'boolean',
         ]);
 
+        // Обновляем данные клиента
         $client->update($validated);
         return response()->json($client);
     }
 
     /**
-     * Удаляет клиента по ID.
+     * Удаляет клиента по UUID.
      */
-    public function destroy(Client $client)
+    public function destroy($clientUuid)
     {
+        // Ищем клиента по UUID
+        $client = Client::where('id', $clientUuid)->first();
+
+        if (!$client) {
+            return response()->json(['error' => 'Client not found'], 404);
+        }
+
+        // Удаляем клиента
         $client->delete();
-        return response()->json(null, 204);
+
+        // Возвращаем успешный ответ
+        return response()->json(['message' => 'Client deleted successfully'], 204);
     }
 }
