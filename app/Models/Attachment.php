@@ -2,18 +2,29 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Attachment extends Model
 {
-    use HasFactory;
+    // Указываем имя таблицы, если оно отличается от стандартного
+    protected $table = 'attachments';
 
-    // Указываем, что это не инкрементируемый ID, а UUID
-    protected $keyType = 'string';
+    // Указываем первичный ключ, если он отличается от стандартного
+    protected $primaryKey = 'id';
+
+    // Указываем, что первичный ключ не является автоинкрементным
     public $incrementing = false;
 
-    // Разрешаем массовое назначение этих полей
+    // Указываем тип данных первичного ключа
+    protected $keyType = 'string';
+
+    // Указываем, что модель использует временные метки
+    public $timestamps = true;
+
+    // Указываем формат временных меток
+    protected $dateFormat = 'Y-m-d H:i:s';
+
+    // Указываем атрибуты, которые могут быть массово присвоены
     protected $fillable = [
         'documentable_id',
         'documentable_type',
@@ -29,15 +40,26 @@ class Attachment extends Model
         'file_name',
     ];
 
-    // Связь с пользователем
-    public function user()
-    {
-        return $this->belongsTo(Client::class, 'user_id');
-    }
+    // Указываем атрибуты, которые должны быть скрыты при преобразовании модели в массив или JSON
+    protected $hidden = [
+        // Например, скрыть поле 'check_sum'
+        'check_sum',
+    ];
 
-    // Полиморфная связь с другими моделями (например, Client)
-    public function documentable()
+    // Указываем атрибуты, которые должны быть кастомизированы
+    protected $casts = [
+        'date_register' => 'datetime',
+        'date_document' => 'datetime',
+    ];
+
+    // Переопределяем метод toArray, чтобы контролировать, какие атрибуты возвращаются
+    public function toArray()
     {
-        return $this->morphTo();
+        $attributes = parent::toArray();
+
+        // Добавляем новый атрибут 'full_name', объединяя 'name' и 'file_name'
+        $attributes['full_name'] = $this->name . ' ' . $this->file_name;
+
+        return $attributes;
     }
 }

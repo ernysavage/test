@@ -27,11 +27,14 @@ Route::delete('clients/{client}', [ClientController::class, 'destroy']); // Уд
 
 // attachments
 
-Route::group(['prefix' => 'attachments', 'middleware' => ['auth:sanctum']], function () {
-    Route::get('', [AttachmentController::class, 'index'])->name('get_attachments');
-    Route::get('{id}', [AttachmentController::class, 'show'])->name('show_attachment');
-    Route::post('', [AttachmentController::class, 'store'])->name('store_attachment');
-    Route::put('{id}', [AttachmentController::class, 'update'])->name('update_attachment');
-    Route::delete('{id}', [AttachmentController::class, 'destroy'])->name('delete_attachment');
-    Route::get('download', [AttachmentController::class, 'download'])->name('download_attachment');
-});
+
+    Route::get('attachments', [AttachmentController::class, 'index']);
+    Route::post('attachments', [AttachmentController::class, 'store'])->name('store_attachment');
+    Route::get('/attachments/download/{id}', [AttachmentController::class, 'download'])->name('download_attachment');
+    Route::get('/attachments/{id}', [AttachmentController::class, 'show'])->name('show_attachment');
+    Route::put('/attachments/{id}', [AttachmentController::class, 'update'])->name('update_attachment');
+    Route::delete('/attachments/{id}', [AttachmentController::class, 'destroy'])->name('destroy_attachment');
+    
+
+Route::get('/attachments/download/{clientId}', [AttachmentController::class, 'download'])->name('attachments.download');
+

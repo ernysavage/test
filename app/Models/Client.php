@@ -1,11 +1,10 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;  // Подключаем Str
-use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Str;
 
 class Client extends Model
 {
@@ -31,16 +30,20 @@ class Client extends Model
     protected static function boot()
     {
         parent::boot();
+
         static::creating(function ($model) {
             if (empty($model->id)) {
-                $model->id = (string) Str::uuid();  // Генерация UUID
-                \Log::info('Generated UUID for client: ' . $model->id); // Логирование UUID
+                $model->id = (string) Str::uuid();
             }
         });
-
     }
+
+    // Связь с вложениями
     public function attachments()
     {
         return $this->hasMany(Attachment::class, 'user_id', 'id');
     }
 }
+
+// id client 50d2660b-f63b-4288-bf7c-c56cc5e45840
+// id 
