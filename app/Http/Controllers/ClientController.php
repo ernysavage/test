@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Ramsey\Uuid\Guid\Guid; // Используем для валидации UUID
 
 class ClientController extends Controller
 {
@@ -43,28 +44,28 @@ class ClientController extends Controller
         $client->is_deleted = $request->is_deleted;
         $client->save();
 
-        // Формируем кастомный ответ
         return response()->json([
             'message' => 'Client created successfully.',
-            'client' => [
-                'id' => $client->id,
-                'name' => $client->name,
-                'description' => $client->description,
-                'inn' => $client->inn,
-                'address' => $client->address,
-                'licence_expired_at' => $client->licence_expired_at,
-                'is_deleted' => $client->is_deleted,
-                'created_at' => $client->created_at,
-                'updated_at' => $client->updated_at,
-            ]
+            'client' => $client
         ], 201);
     }
 
     /**
      * Отображает конкретного клиента по ID.
      */
-    public function show(Client $client)
+    public function show($clientUuid)
     {
+        // Проверяем, что UUID валиден
+        if (!Guid::isValid($clientUuid)) {
+            return response()->json(['error' => 'Invalid UUID format'], 400);
+        }
+
+        $client = Client::where('id', $clientUuid)->first();
+
+        if (!$client) {
+            return response()->json(['error' => 'Client not found'], 404);
+        }
+
         return response()->json($client);
     }
 
@@ -73,14 +74,17 @@ class ClientController extends Controller
      */
     public function update(Request $request, $clientUuid)
     {
-        // Ищем клиента по UUID
+        // Проверяем, что UUID валиден
+        if (!Guid::isValid($clientUuid)) {
+            return response()->json(['error' => 'Invalid UUID format'], 400);
+        }
+
         $client = Client::where('id', $clientUuid)->first();
 
         if (!$client) {
             return response()->json(['error' => 'Client not found'], 404);
         }
 
-        // Валидируем входные данные
         $validated = $request->validate([
             'name' => 'required|string|max:128',
             'description' => 'nullable|string',
@@ -90,8 +94,8 @@ class ClientController extends Controller
             'is_deleted' => 'boolean',
         ]);
 
-        // Обновляем данные клиента
         $client->update($validated);
+
         return response()->json($client);
     }
 
@@ -100,17 +104,19 @@ class ClientController extends Controller
      */
     public function destroy($clientUuid)
     {
-        // Ищем клиента по UUID
+        // Проверяем, что UUID валиден
+        if (!Guid::isValid($clientUuid)) {
+            return response()->json(['error' => 'Invalid UUID format'], 400);
+        }
+
         $client = Client::where('id', $clientUuid)->first();
 
         if (!$client) {
             return response()->json(['error' => 'Client not found'], 404);
         }
 
-        // Удаляем клиента
         $client->delete();
 
-        // Возвращаем успешный ответ
         return response()->json(['message' => 'Client deleted successfully'], 204);
     }
 }

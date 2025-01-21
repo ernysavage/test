@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Attachment;
 use App\Models\Client;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Response;
+use Carbon\Carbon;
 
 class AttachmentController extends Controller
 {
@@ -18,19 +21,17 @@ class AttachmentController extends Controller
     {
         $attachments = Attachment::all();
     
-    // Возвращаем их в формате JSON
-    return response()->json($attachments);
+        // Возвращаем их в формате JSON
+        return response()->json($attachments);
     }
 
     /**
      * Создать новое вложение.
      */
-    
-
-     public function store(Request $request)
+    public function store(Request $request)
     {
-        // Валидация данных с учётом всех полей
-        $validated = $request->validate([
+        // Валидация данных, включая файл
+        $validator = Validator::make($request->all(), [
             'documentable_type' => 'required|string',
             'name' => 'required|string|max:255',
             'number_document' => 'nullable|string',
@@ -38,20 +39,14 @@ class AttachmentController extends Controller
             'date_register' => 'nullable|date',
             'date_document' => 'nullable|date',
             'list_item' => 'nullable|string',
-            'file' => 'required|file',
-            'user_id' => 'nullable|uuid|exists:clients,id',  // Проверка существования user_id в таблице clients
+            'file' => 'required|file',  // Валидируем наличие файла
+            'user_id' => 'nullable|uuid|exists:clients,id',  // Валидируем user_id (если передан)
         ]);
 
-        // Проверяем, если передан user_id, валидируем его
-        if (isset($validated['user_id'])) {
-            $user = Client::find($validated['user_id']);
-            if (!$user) {
-                return response()->json(['error' => 'User not found'], 404);
-            }
+        // Проверяем, если валидация не прошла
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
         }
-
-        // Генерация уникального documentable_id
-        $documentable_id = Str::uuid(); // Генерируем UUID для documentable_id
 
         // Сохраняем файл на диск
         $file = $request->file('file');
@@ -59,32 +54,31 @@ class AttachmentController extends Controller
 
         // Создаем новое вложение
         $attachment = new Attachment();
-        $attachment->documentable_id = $documentable_id; // Устанавливаем автоматически сгенерированный UUID
-        $attachment->documentable_type = $validated['documentable_type'];
-        $attachment->name = $validated['name']; // Имя файла будет использовано как имя документа
-        $attachment->number_document = $validated['number_document'];
-        $attachment->register_number = $validated['register_number'];
-        $attachment->date_register = $validated['date_register'];
-        $attachment->date_document = $validated['date_document'];
-        $attachment->list_item = $validated['list_item'];
-        $attachment->path_file = $filePath;  // Сохраняем путь к файлу
-        $attachment->file_name = $file->getClientOriginalName(); // Имя файла, которое будет сохранено
+        $attachment->documentable_id = Str::uuid();  // Генерируем UUID для documentable_id
+        $attachment->documentable_type = $request->documentable_type;
+        $attachment->name = $request->name;
+        $attachment->number_document = $request->number_document;
+        $attachment->register_number = $request->register_number;
+        $attachment->date_register = $request->date_register;
+        $attachment->date_document = $request->date_document;
+        $attachment->list_item = $request->list_item;
+        $attachment->path_file = $filePath;
+        $attachment->file_name = $file->getClientOriginalName();
         $attachment->check_sum = hash_file('sha256', $file->getPathname());
 
-        // Если передан внешний ключ на клиента (user_id), сохраняем его
-        if (isset($validated['user_id'])) {
-            $attachment->user_id = $validated['user_id'];  // Присваиваем user_id
+        // Если передан user_id, сохраняем его
+        if ($request->has('user_id')) {
+            $attachment->user_id = $request->user_id;
         }
 
+        // Сохраняем в базе
         $attachment->save();
 
         return response()->json([
-            'message' => 'Attachment created successfully',
+            'message' => 'Attachment created successfully.',
             'attachment' => $attachment
         ], 201);
     }
-
-
 
     /**
      * Показать конкретное вложение.
@@ -99,29 +93,33 @@ class AttachmentController extends Controller
      * Обновить данные вложения.
      */
     public function update(Request $request, $id)
-{
-    // Получаем прикрепление по id
-    $attachment = Attachment::findOrFail($id);
+    {
+        // Валидация данных
+        $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'date_document' => 'nullable|date',
+            'file' => 'nullable|file|mimes:jpeg,png,pdf,docx',
+            'user_id' => 'nullable|exists:clients,id',
+        ]);
 
-    // Валидация данных
-    $validated = $request->validate([
-        'name' => 'nullable|string|max:255',
-        // Добавьте другие поля, которые вы хотите обновлять
-    ]);
+        // Получаем прикрепление по id
+        $attachment = Attachment::findOrFail($id);
 
-    // Обновление атрибутов, если они были переданы
-    foreach ($validated as $key => $value) {
-        $attachment->$key = $value;
+        // Обновляем атрибуты
+        $attachment->update($validated);
+
+        // Проверяем, если передан файл, то обрабатываем его
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filePath = $file->storeAs('attachments', Str::uuid() . '.' . $file->getClientOriginalExtension(), 'public');
+            $attachment->path_file = $filePath;
+            $attachment->file_name = $file->getClientOriginalName();
+            $attachment->save();
+        }
+
+        // Возвращаем обновлённую модель
+        return response()->json($attachment, 200);
     }
-
-    // Сохраняем обновление
-    $attachment->save();
-
-    // Возвращаем обновленную модель
-    return response()->json($attachment);
-}
-
-
 
     /**
      * Удалить вложение.
@@ -140,34 +138,40 @@ class AttachmentController extends Controller
     }
 
     /**
-     * Скачать файл.
+     * Скачать файл по user_id.
      */
-    public function download($clientId)
-{
-    // Поиск клиента по ID
-    $client = Client::findOrFail($clientId);
+    public function downloadByUser($user_id)
+    {
+        // Найти клиента по user_id
+        $client = Client::where('id', $user_id)->first();
 
-    // Проверка срока действия лицензии
-    if (now()->greaterThanOrEqualTo($client->licence_expired_at)) {
-        return response()->json(['error' => 'license_expired'], 403);
+        // Проверить, существует ли клиент
+        if (!$client) {
+            return response()->json(['error' => 'Client not found.'], 404);
+        }
+
+        // Проверить, истекла ли лицензия
+        if (Carbon::parse($client->licence_expired_at)->isPast()) {
+            return response()->json(['error' => 'License expired.'], 403);
+        }
+
+        // Найти файл по user_id в таблице attachments
+        $attachment = Attachment::where('user_id', $user_id)->first();
+
+        // Проверить, существует ли запись
+        if (!$attachment) {
+            return response()->json(['error' => 'Attachment not found.'], 404);
+        }
+
+        // Путь к файлу относительно хранилища
+        $filePath = 'public/' . $attachment->path_file;
+
+        // Проверить, существует ли файл на сервере
+        if (!Storage::exists($filePath)) {
+            return response()->json(['error' => 'File not found on server.'], 404);
+        }
+
+        // Отправить файл на скачивание
+        return Storage::download($filePath, $attachment->file_name);
     }
-
-    // Поиск вложения, связанного с клиентом
-    $attachment = Attachment::where('documentable_id', $clientId)
-                            ->where('documentable_type', 'Client')
-                            ->firstOrFail();
-
-    // Путь к файлу
-    $filePath = storage_path('app/public/' . $attachment->path_file);
-
-    // Проверка существования файла
-    if (!file_exists($filePath)) {
-        return response()->json(['error' => 'file_not_found'], 404);
-    }
-
-    // Возвращение файла для скачивания
-    return response()->download($filePath);
 }
-
-}
-// 50d2660b-f63b-4288-bf7c-c56cc5e45840

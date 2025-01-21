@@ -39,10 +39,11 @@ class Client extends Model
     }
 
     // Связь с вложениями
+    
     public function attachments()
-    {
-        return $this->hasMany(Attachment::class, 'user_id', 'id');
-    }
+{
+    return $this->hasMany(Attachment::class, 'user_id');
+}
 }
 
 // id client 50d2660b-f63b-4288-bf7c-c56cc5e45840

@@ -29,12 +29,14 @@ Route::delete('clients/{client}', [ClientController::class, 'destroy']); // Уд
 
 
     Route::get('attachments', [AttachmentController::class, 'index']);
-    Route::post('attachments', [AttachmentController::class, 'store'])->name('store_attachment');
+    Route::post('/attachments', [AttachmentController::class, 'store'])->name('store_attachment');
     Route::get('/attachments/download/{id}', [AttachmentController::class, 'download'])->name('download_attachment');
     Route::get('/attachments/{id}', [AttachmentController::class, 'show'])->name('show_attachment');
     Route::put('/attachments/{id}', [AttachmentController::class, 'update'])->name('update_attachment');
     Route::delete('/attachments/{id}', [AttachmentController::class, 'destroy'])->name('destroy_attachment');
     
 
-Route::get('/attachments/download/{clientId}', [AttachmentController::class, 'download'])->name('attachments.download');
+    Route::get('/attachments/user/{user_id}/download', [AttachmentController::class, 'downloadByUser']);
+
+
 

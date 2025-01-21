@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Attachment extends Model
 {
@@ -42,7 +43,6 @@ class Attachment extends Model
 
     // Указываем атрибуты, которые должны быть скрыты при преобразовании модели в массив или JSON
     protected $hidden = [
-        // Например, скрыть поле 'check_sum'
         'check_sum',
     ];
 
@@ -51,6 +51,20 @@ class Attachment extends Model
         'date_register' => 'datetime',
         'date_document' => 'datetime',
     ];
+
+    // Событие перед сохранением
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Событие "creating" для автоматического заполнения полей
+        static::creating(function ($attachment) {
+            // Генерация уникального documentable_id
+            $attachment->documentable_id = Str::uuid();
+            // Автоматическое заполнение даты документа
+            $attachment->date_document = now();
+        });
+    }
 
     // Переопределяем метод toArray, чтобы контролировать, какие атрибуты возвращаются
     public function toArray()
@@ -62,4 +76,8 @@ class Attachment extends Model
 
         return $attributes;
     }
+    public function client()
+{
+    return $this->belongsTo(Client::class, 'user_id');
+}
 }
