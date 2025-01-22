@@ -73,31 +73,37 @@ class ClientController extends Controller
      * Обновляет данные клиента по UUID.
      */
     public function update(Request $request, $clientUuid)
-    {
-        // Проверяем, что UUID валиден
-        if (!Guid::isValid($clientUuid)) {
-            return response()->json(['error' => 'Invalid UUID format'], 400);
-        }
-
-        $client = Client::where('id', $clientUuid)->first();
-
-        if (!$client) {
-            return response()->json(['error' => 'Client not found'], 404);
-        }
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:128',
-            'description' => 'nullable|string',
-            'inn' => 'required|numeric',
-            'address' => 'required|string',
-            'licence_expired_at' => 'nullable|date',
-            'is_deleted' => 'boolean',
-        ]);
-
-        $client->update($validated);
-
-        return response()->json($client);
+{
+    // Проверяем, что UUID валиден
+    if (!Guid::isValid($clientUuid)) {
+        return response()->json(['error' => 'Invalid UUID format'], 400);
     }
+
+    // Ищем клиента по UUID
+    $client = Client::where('id', $clientUuid)->first();
+
+    // Если клиент не найден, возвращаем ошибку
+    if (!$client) {
+        return response()->json(['error' => 'Client not found'], 404);
+    }
+
+    // Валидация данных запроса (включает все поля, которые могут быть обновлены)
+    $validated = $request->validate([
+        'name' => 'nullable|string|max:128',
+        'description' => 'nullable|string',
+        'inn' => 'nullable|numeric',
+        'address' => 'nullable|string',
+        'licence_expired_at' => 'nullable|date',
+        'is_deleted' => 'nullable|boolean',
+    ]);
+
+    // Обновляем только те поля, которые были переданы в запросе
+    $client->update(array_filter($validated)); // array_filter удаляет пустые значения
+
+    // Возвращаем обновленного клиента
+    return response()->json($client);
+}
+
 
     /**
      * Удаляет клиента по UUID.

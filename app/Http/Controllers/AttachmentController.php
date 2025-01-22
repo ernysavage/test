@@ -142,36 +142,37 @@ class AttachmentController extends Controller
      */
     public function downloadByUser($user_id)
     {
-        // Найти клиента по user_id
-        $client = Client::where('id', $user_id)->first();
+        // Находим клиента по user_id
+        $client = Client::find($user_id);
 
-        // Проверить, существует ли клиент
         if (!$client) {
-            return response()->json(['error' => 'Client not found.'], 404);
+            return response()->json(['error' => 'Client not found'], 404);
         }
 
-        // Проверить, истекла ли лицензия
-        if (Carbon::parse($client->licence_expired_at)->isPast()) {
-            return response()->json(['error' => 'License expired.'], 403);
+        // Проверяем, не истекла ли лицензия
+        if ($client->licence_expired_at && Carbon::parse($client->licence_expired_at)->isPast()) {
+            return response()->json(['error' => 'License expired'], 403); // Код 403 для ошибки
         }
 
-        // Найти файл по user_id в таблице attachments
-        $attachment = Attachment::where('user_id', $user_id)->first();
+        // Ищем прикрепленные файлы для этого пользователя
+        $attachment = Attachment::where('user_id', $client->id)->first();
 
-        // Проверить, существует ли запись
         if (!$attachment) {
-            return response()->json(['error' => 'Attachment not found.'], 404);
+            return response()->json(['error' => 'No attachments found for this user'], 404);
         }
 
-        // Путь к файлу относительно хранилища
-        $filePath = 'public/' . $attachment->path_file;
+        $filePath = storage_path('app/public/' . $attachment->path_file);
 
-        // Проверить, существует ли файл на сервере
-        if (!Storage::exists($filePath)) {
-            return response()->json(['error' => 'File not found on server.'], 404);
+        // Проверяем, существует ли файл
+        if (!file_exists($filePath)) {
+            return response()->json(['error' => 'File does not exist on server'], 404);
         }
 
-        // Отправить файл на скачивание
-        return Storage::download($filePath, $attachment->file_name);
+        // Если файл существует, отправляем его как вложение
+        return response()->download($filePath, basename($filePath), [
+            'Content-Type' => 'application/octet-stream',
+            'Content-Disposition' => 'attachment; filename="' . basename($filePath) . '"',
+        ]);
     }
 }
+
