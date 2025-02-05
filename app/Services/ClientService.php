@@ -3,7 +3,8 @@
 namespace App\Services;
 
 use App\Models\Client;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\Client\CreateClientRequest;
+use App\Http\Requests\Client\UpdateClientRequest;
 use Ramsey\Uuid\Guid\Guid;
 
 class ClientService
@@ -13,23 +14,14 @@ class ClientService
         return Client::all();
     }
 
-    public function createClient($data)
+    public function createClient(CreateClientRequest $request)
     {
-        $validator = Validator::make($data, [
-            'name' => 'required|string|max:128',
-            'description' => 'required|string',
-            'inn' => 'required|numeric',
-            'address' => 'required|string',
-            'licence_expired_at' => 'required|date',
-            'is_deleted' => 'required|boolean',
-        ]);
+        // Валидация входных данных через Request
+        $validated = $request->validated();
 
-        if ($validator->fails()) {
-            return ['errors' => $validator->errors()];
-        }
-
+        // Создание нового клиента
         $client = new Client();
-        $client->fill($data);
+        $client->fill($validated);
         $client->save();
 
         return $client;
@@ -44,7 +36,7 @@ class ClientService
         return Client::where('id', $clientUuid)->first();
     }
 
-    public function updateClient($clientUuid, $data)
+    public function updateClient($clientUuid, UpdateClientRequest $request)
     {
         if (!Guid::isValid($clientUuid)) {
             return ['error' => 'Invalid UUID format'];
@@ -56,14 +48,8 @@ class ClientService
             return ['error' => 'Client not found'];
         }
 
-        $validated = $data->validate([
-            'name' => 'nullable|string|max:128',
-            'description' => 'nullable|string',
-            'inn' => 'nullable|numeric',
-            'address' => 'nullable|string',
-            'licence_expired_at' => 'nullable|date',
-            'is_deleted' => 'nullable|boolean',
-        ]);
+        // Валидация обновленных данных через Request
+        $validated = $request->validated();
 
         $client->update(array_filter($validated));
 
@@ -82,8 +68,10 @@ class ClientService
             return ['error' => 'Client not found'];
         }
 
-        $client->delete();
+        // Мягкое удаление
+        $client->is_deleted = true; // Устанавливаем флаг soft delete
+        $client->save();
 
-        return ['message' => 'Client deleted successfully'];
+        return ['message' => 'Client marked as deleted successfully'];
     }
 }

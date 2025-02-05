@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 class Client extends Model
 {
     use HasFactory;
+    
 
     protected $table = 'clients';
 
@@ -41,9 +42,9 @@ class Client extends Model
     // Связь с вложениями
     
     public function attachments()
-{
-    return $this->hasMany(Attachment::class, 'user_id');
-}
+    {
+        return $this->morphOne(Attachment::class, 'documentable');
+    }
 }
 
 // id client 50d2660b-f63b-4288-bf7c-c56cc5e45840

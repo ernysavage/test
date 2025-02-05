@@ -1,62 +1,79 @@
 <?php
-
 namespace App\Services;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Tymon\JWTAuth\Contracts\JWTSubject;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Cache;
 
 class AuthService
 {
     // Логика регистрации
-    public function register(array $data)
+    public function register(array $params)
     {
-        $validator = Validator::make($data, [
-            'name' => 'required',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|confirmed|min:8',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors()->toJson(), 400);
-        }
-
-        $user = new User();
-        $user->name = $data['name'];
-        $user->email = $data['email'];
-        $user->password = Hash::make($data['password']);
-        $user->save();
+        $user = User::create($params);
 
         return $user;
     }
 
-    // Логика логина
-    public function login(array $credentials)
-    {
-        if (!$token = auth()->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
-        return $this->respondWithToken($token);
+    public function login(array $params)
+{
+    //  подразумевает $params содержит 'email' и 'password'
+    if (!$token = JWTAuth::attempt($params)) {
+        // Если аутентификация не прошла, возвращаем ошибку
+        return response()->json(['error' => 'Unauthorized'], 401);
     }
 
-    // Логика получения данных текущего пользователя
-    public function me()
-    {
-        return JWTAuth::user();
-    }
+    return $this->respondWithToken($token);
+}
 
-    // Логика выхода
+public function me()
+{
+    try {
+        // Пытаемся получить токен из запроса
+        $token = auth()->getToken()->get();
+    } catch (\Exception $e) {
+        // Если токен не найден или произошла ошибка – возвращаем 404
+        return response()->json(['error' => 'Token not found or invalid']);
+    }
+    
+    // Формируем уникальный ключ для кэша с использованием MD5 хэша токена
+    $cacheKey = 'user_' . md5($token);
+
+    // Пытаемся получить пользователя из кэша,
+    // если его нет – функция  вернёт auth()->user()
+    $user = \Cache::remember($cacheKey, now()->addMinutes(1440), function () {
+        return auth()->user();
+    });
+
+    // Если пользователь не найден, возвращаем ошибку 
+    if (!$user) {
+        return response()->json(['error' => 'User not found for this token']);
+    }
+    
+    return response()->json($user);
+}
+
     public function logout()
     {
-        JWTAuth::invalidate(JWTAuth::getToken());
+        $token = JWTAuth::getToken();
+        JWTAuth::invalidate($token);
+
+        // Удаляем данные пользователя из кэша при выходе
+        Cache::forget('user_' . $token);
 
         return response()->json(['message' => 'Successfully logged out']);
     }
 
-    // Формирование токена
+    public function refresh()
+    {
+        $currentToken = JWTAuth::getToken();
+
+        // Обновляем токен
+        $newToken = JWTAuth::refresh($currentToken);
+
+        return $this->respondWithToken($newToken);
+    }
+
     protected function respondWithToken($token)
     {
         return response()->json([

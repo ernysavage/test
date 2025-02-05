@@ -1,6 +1,5 @@
 /.phpunit.cache
 /node_modules
-/public/hot
 /storage/*.key
 /storage/pail
 .env.backup

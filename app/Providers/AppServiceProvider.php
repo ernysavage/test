@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Services\AttachmentService;
+use App\Services\AuthService;
+use App\Services\ClientService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,8 +18,8 @@ class AppServiceProvider extends ServiceProvider
             return new AttachmentService();
         });
 
-        $this->app->singleton(UserService::class, function ($app) {
-            return new UserService();
+        $this->app->singleton(AuthService::class, function ($app) {
+            return new AuthService();
         });
 
         $this->app->singleton(ClientService::class, function ($app) {

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Services\ClientService;
+use App\Http\Requests\Client\CreateClientRequest;
+use App\Http\Requests\Client\UpdateClientRequest;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -15,20 +17,20 @@ class ClientController extends Controller
     }
 
     /**
-     * Отображает список всех клиентов.
+     * Получить список всех клиентов.
      */
-    public function index()
+    public function listClients()
     {
         $clients = $this->clientService->getAllClients();
         return response()->json($clients);
     }
 
     /**
-     * Создает нового клиента.
+     * Создать нового клиента.
      */
-    public function store(Request $request)
+    public function createClient(CreateClientRequest $request)
     {
-        $result = $this->clientService->createClient($request->all());
+        $result = $this->clientService->createClient($request);
 
         if (isset($result['errors'])) {
             return response()->json(['errors' => $result['errors']], 400);
@@ -36,14 +38,14 @@ class ClientController extends Controller
 
         return response()->json([
             'message' => 'Client created successfully.',
-            'client' => $result
+            'client'  => $result
         ], 201);
     }
 
     /**
-     * Отображает конкретного клиента по ID.
+     * Получить информацию о клиенте по UUID.
      */
-    public function show($clientUuid)
+    public function getClient($clientUuid)
     {
         $client = $this->clientService->getClientByUuid($clientUuid);
 
@@ -59,9 +61,9 @@ class ClientController extends Controller
     }
 
     /**
-     * Обновляет данные клиента по UUID.
+     * Обновить данные клиента по UUID.
      */
-    public function update(Request $request, $clientUuid)
+    public function updateClient(UpdateClientRequest $request, $clientUuid)
     {
         $result = $this->clientService->updateClient($clientUuid, $request);
 
@@ -77,9 +79,9 @@ class ClientController extends Controller
     }
 
     /**
-     * Удаляет клиента по UUID.
+     * Мягко удалить клиента по UUID.
      */
-    public function destroy($clientUuid)
+    public function deleteClient($clientUuid)
     {
         $result = $this->clientService->deleteClient($clientUuid);
 
@@ -87,6 +89,8 @@ class ClientController extends Controller
             return response()->json($result, 400);
         }
 
-        return response()->json(['message' => 'Client deleted successfully'], 204);
+        // При успешном удалении можно вернуть статус 204 (No Content)
+        return response()->json(['message' => 'Client marked as deleted successfully'], 204);
     }
+
 }

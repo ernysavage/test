@@ -1,9 +1,13 @@
-<?php 
+<?php
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Attachment\CreateAttachmentRequest;
+use App\Http\Requests\Attachment\UpdateAttachmentRequest;
 use App\Services\AttachmentService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class AttachmentController extends Controller
 {
@@ -14,66 +18,39 @@ class AttachmentController extends Controller
         $this->attachmentService = $attachmentService;
     }
 
-    /**
-     * Получить все вложения.
-     */
-    public function getAllAttachments()
+    public function getAllAttachments(): JsonResponse
     {
-        return response()->json($this->attachmentService->getAllAttachments());
+        $attachments = $this->attachmentService->getAllAttachments();
+        return response()->json($attachments);
     }
 
-    /**
-     * Создать новое вложение.
-     */
-    public function createAttachment(Request $request)
+    public function createAttachment(CreateAttachmentRequest $request): JsonResponse
     {
-        $attachment = $this->attachmentService->createAttachment($request);
-        return response()->json([
-            'message' => 'Attachment created successfully.',
-            'attachment' => $attachment
-        ], 201);
+        $attachment = $this->attachmentService->createAttachment($request->validated());
+        return response()->json($attachment, 201);
     }
 
-    /**
-     * Получить вложение по ID.
-     */
-    public function getAttachmentById($attachmentId)
+    public function updateAttachment(UpdateAttachmentRequest $request, string $id): JsonResponse
+{
+    $attachment = $this->attachmentService->updateAttachment($id, $request->validated());
+    return response()->json($attachment);
+}
+
+
+    public function deleteAttachment(string $id): JsonResponse
     {
-        $attachment = $this->attachmentService->getAttachmentById($attachmentId);
+        $this->attachmentService->deleteAttachment($id);
+        return response()->json(null, 204);
+    }
+
+    public function getAttachmentById(string $id): JsonResponse
+    {
+        $attachment = $this->attachmentService->getAttachmentById($id);
         return response()->json($attachment);
     }
 
-    /**
-     * Обновить вложение.
-     */
-    public function updateAttachment(Request $request, $id)
+    public function downloadByUserID(Request $request, string $userId)
     {
-        $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'date_document' => 'nullable|date',
-            'file' => 'nullable|file|mimes:jpeg,png,pdf,docx',
-            'user_id' => 'nullable|exists:clients,id',
-        ]);
-
-        $attachment = $this->attachmentService->updateAttachment($validated, $id);
-
-        return response()->json($attachment, 200);
-    }
-
-    /**
-     * Удалить вложение.
-     */
-    public function deleteAttachment($attachmentId)
-    {
-        $this->attachmentService->deleteAttachment($attachmentId);
-        return response()->json(['message' => 'Attachment deleted successfully'], 204);
-    }
-
-    /**
-     * Скачать файл вложения по user_id.
-     */
-    public function downloadFileByUser($userId)
-    {
-        return $this->attachmentService->downloadFileByUser($userId);
+        return $this->attachmentService->downloadByUserID($userId);
     }
 }

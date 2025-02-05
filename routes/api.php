@@ -5,24 +5,25 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AttachmentController;
 
 
-// Группа маршрутов для аутентификации
+
+
+Route::post('/register', [AuthController::class, 'register'])->name('register');
+Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::group([
-    'middleware' => 'api',
+    'middleware' => ['api', 'jwtAuth'],
     'prefix' => 'auth'
 ], function () {
-    Route::post('/register', [AuthController::class, 'register'])->name('register');
-    Route::post('/login', [AuthController::class, 'login'])->name('login');
-    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api')->name('logout');
-    Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('auth:api')->name('refresh');
-    Route::post('/me', [AuthController::class, 'me'])->middleware('auth:api')->name('me');
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
+    Route::post('/me', [AuthController::class, 'me'])->name('me');
 });
 
 // CRUD для клиентов
-Route::post('clients', [ClientController::class, 'store']); // Создание клиента
-Route::get('clients', [ClientController::class, 'index']); // Получить всех клиентов
-Route::get('clients/{client}', [ClientController::class, 'show']); // Получить конкретного клиента
-Route::put('clients/{client}', [ClientController::class, 'update']); // Обновить клиента
-Route::delete('clients/{client}', [ClientController::class, 'destroy']); // Удалить клиента
+Route::post('clients', [ClientController::class, 'createClient']); // Создание клиента
+Route::get('clients', [ClientController::class, 'listClients']); // Получить всех клиентов
+Route::get('clients/{client}', [ClientController::class, 'getClient']); // Получить конкретного клиента
+Route::put('clients/{client}', [ClientController::class, 'updateClient']); // Обновить клиента
+Route::delete('clients/{client}', [ClientController::class, 'deleteClient']); // Удалить клиента
 
 
 // attachments
@@ -45,7 +46,7 @@ Route::prefix('attachments')->group(function () {
     Route::delete('{attachmentUuid}', [AttachmentController::class, 'deleteAttachment']);
     
     // Скачать файл для пользователя
-    Route::get('download/{userId}', [AttachmentController::class, 'downloadFileByUser']);
+    Route::get('{attachmentId}/download', [AttachmentController::class, 'downloadByUserID']);
 });
 
 

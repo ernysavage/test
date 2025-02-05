@@ -3,51 +3,54 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\RegisterRequest;
 use App\Services\AuthService;  // Импортируем сервис
-use Illuminate\Http\Request;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Middleware\JWTAuthentication;
+
+
 
 class AuthController extends Controller
 {
     protected $authService;
 
-    // Инъекция зависимостей через конструктор
     public function __construct(AuthService $authService)
     {
         $this->authService = $authService;
+        $this->middleware(JWTAuthentication::class)->only('me');
+
     }
 
-    // Метод для регистрации пользователя
-    public function register(Request $request)
+    // Регистрация
+    public function register(RegisterRequest $request)
     {
-        $data = $request->all();
-        $user = $this->authService->register($data);
-
-        return response()->json($user, 201);
+        $result = $this->authService->register($request->validated());
+        
+        return response()->json(['user' => $result], 201);
     }
 
-    // Метод для логина пользователя
-    public function login(Request $request)
+    // Логин
+    public function login(LoginRequest $request)
     {
-        $credentials = $request->only(['email', 'password']);
-        $token = $this->authService->login($credentials);
+        $token = $this->authService->login($request->validated());
 
-        return $token;
+        return response()->json(['access_token' => $token], 200);
     }
 
-    // Метод для получения данных текущего пользователя
+    // Получить информацию о текущем пользователе
     public function me()
     {
-        $user = $this->authService->me();
-
-        return response()->json($user);
+        return response()->json($this->authService->me());
     }
 
-    // Метод для выхода пользователя
+    // Логаут
     public function logout()
     {
-        $message = $this->authService->logout();
-
-        return $message;
+        return $this->authService->logout();
+    }
+    
+    public function refresh()
+    {
+        return $this->authService->refresh();
     }
 }

@@ -1,20 +1,24 @@
 <?php
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Attachment extends Model
 {
-    protected $table = 'attachments';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-    public $timestamps = true;
-    protected $dateFormat = 'Y-m-d H:i:s';
+    use HasFactory;
 
+    protected $table = 'attachments';
+
+    // Указываем, что ID не автоинкрементируется
+    public $incrementing = false;
+
+    // Указываем, что тип ID - строка (UUID)
+    protected $keyType = 'string';
+
+    // Задаем поля, которые могут быть массово присвоены
     protected $fillable = [
-        'id',
         'documentable_id',
         'documentable_type',
         'name',
@@ -27,44 +31,42 @@ class Attachment extends Model
         'check_sum',
         'user_id',
         'file_name',
+        
     ];
 
-    protected $hidden = [
-        'check_sum',
-    ];
-
+    // Указываем, что documentable_id является строкой (UUID)
     protected $casts = [
-        'date_register' => 'datetime',
-        'date_document' => 'datetime',
+        'documentable_id' => 'string',  // Преобразуем в строку (UUID)
     ];
 
-    // Событие перед сохранением
+    // Определяем полиморфную связь
+    public function documentable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+    
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($attachment) {
-            // Генерация уникального documentable_id, если оно еще не установлено
-            if (empty($attachment->documentable_id)) {
-                $attachment->documentable_id = Str::uuid();
-            }
-            // Устанавливаем дату документа, если она еще не установлена
-            if (empty($attachment->date_document)) {
-                $attachment->date_document = now();
+            if ($attachment->uploaded_file) {
+                $file = $attachment->uploaded_file;
+
+                // Сохранение файла
+                $path = $file->store('attachments');
+                $attachment->path_file = $path;
+
+                // Оригинальное имя файла
+                $attachment->file_name = $file->getClientOriginalName();
+
+                // Контрольная сумма
+                $attachment->check_sum = md5_file(storage_path('app/' . $path));
+
+                // Если не хотите сохранять поле uploaded_file в БД
+                unset($attachment->uploaded_file);
             }
         });
     }
-
-    public function client()
-    {
-        return $this->belongsTo(Client::class, 'user_id');
-    }
-
-    public function toArray()
-    {
-        $attributes = parent::toArray();
-        $attributes['full_name'] = $this->name . ' ' . $this->file_name;
-
-        return $attributes;
-    }
+    
 }

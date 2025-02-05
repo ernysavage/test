@@ -1,133 +1,78 @@
 <?php
-
 namespace App\Services;
 
 use App\Models\Attachment;
 use App\Models\Client;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class AttachmentService
 {
-    /**
-     * Получить все вложения.
-     */
     public function getAllAttachments()
     {
         return Attachment::all();
     }
 
-    /**
-     * Создать новое вложение.
-     */
-    public function createAttachment($request)
-    {
-        // Валидация данных
-        $validated = $request->validate([
-            'documentable_type' => 'required|string',
-            'name' => 'required|string|max:255',
-            'file' => 'required|file',
-            'user_id' => 'nullable|uuid|exists:clients,id',
-        ]);
+    public function createAttachment(array $data)
+{
+    // Находим клиента по documentable_id
+    $client = Client::findOrFail($data['documentable_id']);
+    $data['documentable_type'] = Client::class;
 
-        // Проверка на уникальность имени для пользователя
-        if (Attachment::where('user_id', $request->user_id)
-            ->where('name', $request->name)
-            ->exists()) {
-            return response()->json(['error' => 'User already has an attachment with this name'], 400);
+    if (isset($data['file'])) {
+        // Если file является массивом и содержит более одного элемента – выбрасываем ошибку
+        if (is_array($data['file']) && count($data['file']) > 1) {
+            // Можно выбросить исключение или вернуть ошибку
+            throw new \Exception('Загружать можно только один файл.');
         }
-
-        // Сохраняем файл
-        $file = $request->file('file');
-        $filePath = $file->storeAs(config('app.attachment_path'), Str::uuid().'.'.$file->getClientOriginalExtension(), 'public');
-
-        // Создаем вложение
-        $attachment = Attachment::create([
-            'documentable_type' => $request->documentable_type,
-            'name' => $request->name,
-            'number_document' => $request->number_document,
-            'register_number' => $request->register_number,
-            'date_register' => $request->date_register,
-            'date_document' => $request->date_document,
-            'list_item' => $request->list_item,
-            'path_file' => $filePath,
-            'file_name' => $file->getClientOriginalName(),
-            'check_sum' => hash_file('sha256', $file->getPathname()),
-            'user_id' => $request->user_id,
-        ]);
-
-        return response()->json(['message' => 'Attachment created successfully.', 'attachment' => $attachment], 201);
+        
+        // Если file является массивом с единственным элементом, берём его; иначе — сам file
+        $file = is_array($data['file']) ? $data['file'][0] : $data['file'];
+        
+        // Удаляем любые переданные значения для этих полей,
+        // чтобы гарантировать их автоматическое заполнение
+        unset($data['file_name'], $data['check_sum'], $data['path_file']);
+        
+        // Сохраняем файл в директории "attachments" на публичном диске
+        $path = $file->store('attachments', 'public');
+        $data['path_file'] = $path;
+        // Получаем оригинальное имя файла
+        $data['file_name'] = $file->getClientOriginalName();
+        
+        // Вычисляем SHA-256 хэш файла
+        $filePath = \Storage::disk('public')->path($path);
+        $data['check_sum'] = hash_file('sha256', $filePath);
+        
+        // Удаляем временное поле с файлом
+        unset($data['file']);
     }
 
-    /**
-     * Получить вложение по ID.
-     */
-    public function getAttachmentById($attachmentId)
-    {
-        return Attachment::where('id', $attachmentId)->firstOrFail();
-    }
+    
+    return Attachment::create($data);
+}
 
-    /**
-     * Обновить вложение.
-     */
-    public function updateAttachment($validated, $id)
-    {
-        $attachment = Attachment::findOrFail($id);
-        $attachment->update($validated);
-
-        // Обновляем файл, если передан
-        if ($validated['file'] ?? false) {
-            $file = $validated['file'];
-            $filePath = $file->storeAs(config('app.attachment_path'), Str::uuid().'.'.$file->getClientOriginalExtension(), 'public');
-            $attachment->update([
-                'path_file' => $filePath,
-                'file_name' => $file->getClientOriginalName(),
-            ]);
-        }
-
-        return $attachment;
-    }
-
-    /**
-     * Удалить вложение.
-     */
-    public function deleteAttachment($attachmentId)
-    {
-        $attachment = Attachment::where('id', $attachmentId)->firstOrFail();
-        Storage::delete('public/'.$attachment->path_file);
-        $attachment->delete();
-
-        return response()->json(['message' => 'Attachment deleted successfully.']);
-    }
-
-    /**
-     * Скачать файл вложения по user_id.
-     */
-    public function downloadFileByUser($userId)
+    public function downloadByUserId($userId)
     {
         $client = Client::find($userId);
 
         if (!$client) {
-            return response()->json(['error' => 'Client not found'], 404); // Клиент не найден (id)
+            return response()->json(['error' => 'Client not found'], 404);
         }
 
-        // Проверяем, не истекла ли лицензия
         if ($client->licence_expired_at && Carbon::parse($client->licence_expired_at)->isPast()) {
             return response()->json(['error' => 'License expired'], 403);
         }
 
-        $attachment = Attachment::where('user_id', $client->id)->first();
+        $attachment = Attachment::where('documentable_id', $client->id)
+            ->where('documentable_type', Client::class)
+            ->first();
+
         if (!$attachment) {
-            return response()->json(['error' => 'No attachments found for this user'], 404); // Неверный user_id
+            return response()->json(['error' => 'No attachments found for this user'], 404);
         }
-
-        $filePath = storage_path('app/public/' . $attachment->path_file);
-
-        if (!file_exists($filePath)) {
-            return response()->json(['error' => 'File does not exist on server'], 404); // Попытка получить несуществующий файл
-        }
-
-        return response()->download($filePath);
+        
+        return Storage::disk('public')->download($attachment->path_file, $attachment->file_name);
     }
 }
