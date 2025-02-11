@@ -17,7 +17,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-/vendor/
+/vendor
 /public/uploads/
 /storage/logs/
 /storage/framework/cache/
@@ -25,6 +25,5 @@ yarn-error.log
 /storage/framework/sessions/
 /public/storage
 /storage/*.key
-/storage/app/private
 /storage/app/public
 
