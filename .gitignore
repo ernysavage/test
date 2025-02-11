@@ -23,7 +23,7 @@ yarn-error.log
 /storage/framework/cache/
 /storage/framework/views/
 /storage/framework/sessions/
-/public/storage
+/public
 /storage/*.key
-/storage/app/public
+
 
