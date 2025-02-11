@@ -9,9 +9,7 @@ use App\Services\ClientService;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
+    
     public function register(): void
     {
         $this->app->singleton(AttachmentService::class, function ($app) {

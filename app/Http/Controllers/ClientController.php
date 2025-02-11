@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Services\ClientService;
 use App\Http\Requests\Client\CreateClientRequest;
 use App\Http\Requests\Client\UpdateClientRequest;
+use App\Http\Requests\Client\DeleteClientRequest;
+use App\Http\Requests\Client\GetClientByIdRequest;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -43,11 +45,12 @@ class ClientController extends Controller
     }
 
     /**
-     * Получить информацию о клиенте по UUID.
+     * Получить информацию о клиенте по ID.
+     * Здесь идентификатор извлекается внутри GetClientByIdRequest через prepareForValidation().
      */
-    public function getClient($clientUuid)
+    public function getClientById(GetClientByIdRequest $request)
     {
-        $client = $this->clientService->getClientByUuid($clientUuid);
+        $client = $this->clientService->getClientById($request);
 
         if (isset($client['error'])) {
             return response()->json($client, 400);
@@ -61,11 +64,12 @@ class ClientController extends Controller
     }
 
     /**
-     * Обновить данные клиента по UUID.
+     * Обновить данные клиента.
+     * Идентификатор клиента передаётся из URL (например, {clientId}) как второй параметр.
      */
-    public function updateClient(UpdateClientRequest $request, $clientUuid)
+    public function updateClient(UpdateClientRequest $request, $client_id)
     {
-        $result = $this->clientService->updateClient($clientUuid, $request);
+        $result = $this->clientService->updateClient($client_id, $request);
 
         if (isset($result['error'])) {
             return response()->json($result, 400);
@@ -78,19 +82,15 @@ class ClientController extends Controller
         return response()->json($result);
     }
 
-    /**
-     * Мягко удалить клиента по UUID.
-     */
-    public function deleteClient($clientUuid)
+    
+    public function deleteClient(DeleteClientRequest $request)
     {
-        $result = $this->clientService->deleteClient($clientUuid);
+        $result = $this->clientService->deleteClient($request);
 
         if (isset($result['error'])) {
             return response()->json($result, 400);
         }
 
-        // При успешном удалении можно вернуть статус 204 (No Content)
         return response()->json(['message' => 'Client marked as deleted successfully'], 204);
     }
-
 }

@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('cache', function (Blueprint $table) {
-            $table->string('key', 512)->unique();
-            $table->mediumText('value');
-            $table->integer('expiration');
+            $table->string('key', 512)->primary()->comment('Уникальный ключ кэша');
+            $table->mediumText('value')->comment('Содержимое кэша');
+            $table->integer('expiration')->comment('Время истечения кэша');
         });
     }
 

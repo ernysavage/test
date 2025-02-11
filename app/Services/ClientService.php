@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\Client;
 use App\Http\Requests\Client\CreateClientRequest;
 use App\Http\Requests\Client\UpdateClientRequest;
-use Ramsey\Uuid\Guid\Guid;
+use App\Http\Requests\Client\DeleteClientRequest;
+use App\Http\Requests\Client\GetClientByIDRequest;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ClientService
 {
@@ -14,12 +16,11 @@ class ClientService
         return Client::all();
     }
 
+   
     public function createClient(CreateClientRequest $request)
     {
-        // Валидация входных данных через Request
         $validated = $request->validated();
 
-        // Создание нового клиента
         $client = new Client();
         $client->fill($validated);
         $client->save();
@@ -27,50 +28,51 @@ class ClientService
         return $client;
     }
 
-    public function getClientByUuid($clientUuid)
+   
+    public function getClientById(GetClientByIDRequest $request)
     {
-        if (!Guid::isValid($clientUuid)) {
-            return ['error' => 'Invalid UUID format'];
-        }
-
-        return Client::where('id', $clientUuid)->first();
-    }
-
-    public function updateClient($clientUuid, UpdateClientRequest $request)
-    {
-        if (!Guid::isValid($clientUuid)) {
-            return ['error' => 'Invalid UUID format'];
-        }
-
-        $client = Client::where('id', $clientUuid)->first();
+        $validated = $request->validated();
+        $client = Client::where('id', $validated['client_id'])->first();
 
         if (!$client) {
             return ['error' => 'Client not found'];
         }
 
-        // Валидация обновленных данных через Request
+        return $client;
+    }
+
+   
+    public function updateClient($clientId, UpdateClientRequest $request)
+    {
+        $client = Client::where('id', $clientId)->first();
+
+        if (!$client) {
+            return ['error' => 'Client not found'];
+        }
+
         $validated = $request->validated();
+
+        // Если нет изменений, возвращаем старые данные
+        if (empty($validated)) {
+            return $client;
+        }
 
         $client->update(array_filter($validated));
 
         return $client;
     }
 
-    public function deleteClient($clientUuid)
+    
+        public function deleteClient(DeleteClientRequest $request)
     {
-        if (!Guid::isValid($clientUuid)) {
-            return ['error' => 'Invalid UUID format'];
-        }
-
-        $client = Client::where('id', $clientUuid)->first();
+        $validated = $request->validated();
+         $client = Client::find($validated['client_id']);
 
         if (!$client) {
             return ['error' => 'Client not found'];
         }
 
-        // Мягкое удаление
-        $client->is_deleted = true; // Устанавливаем флаг soft delete
-        $client->save();
+        $client->delete(); // Мягкое удаление
 
         return ['message' => 'Client marked as deleted successfully'];
     }

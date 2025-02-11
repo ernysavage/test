@@ -18,15 +18,11 @@ Route::group([
     Route::post('/me', [AuthController::class, 'me'])->name('me');
 });
 
-// CRUD для клиентов
 Route::post('clients', [ClientController::class, 'createClient']); // Создание клиента
 Route::get('clients', [ClientController::class, 'listClients']); // Получить всех клиентов
-Route::get('clients/{client}', [ClientController::class, 'getClient']); // Получить конкретного клиента
-Route::put('clients/{client}', [ClientController::class, 'updateClient']); // Обновить клиента
-Route::delete('clients/{client}', [ClientController::class, 'deleteClient']); // Удалить клиента
-
-
-// attachments
+Route::get('clients/{client_id}', [ClientController::class, 'getClientById']); // Получить конкретного клиента
+Route::put('clients/{client_id}', [ClientController::class, 'updateClient']); // Обновить клиента
+Route::delete('clients/{client_id}', [ClientController::class, 'deleteClient']);
 
 
 Route::prefix('attachments')->group(function () {
@@ -37,16 +33,16 @@ Route::prefix('attachments')->group(function () {
     Route::post('/', [AttachmentController::class, 'createAttachment']);
     
     // Получить вложение по ID
-    Route::get('{attachmentUuid}', [AttachmentController::class, 'getAttachmentById']);
+    Route::get('{attachment_id}', [AttachmentController::class, 'getAttachmentById']);
     
     // Обновить вложение
-    Route::put('{id}', [AttachmentController::class, 'updateAttachment']);
+    Route::put('{attachment_id}', [AttachmentController::class, 'updateAttachment']);
     
     // Удалить вложение
-    Route::delete('{attachmentUuid}', [AttachmentController::class, 'deleteAttachment']);
+    Route::delete('{attachment_id}', [AttachmentController::class, 'deleteAttachment']);
     
     // Скачать файл для пользователя
-    Route::get('{attachmentId}/download', [AttachmentController::class, 'downloadByUserID']);
+    Route::get('{user_id}/download', [AttachmentController::class, 'downloadByUserID']);
 });
 
 

@@ -32,7 +32,7 @@ public function me()
         // Пытаемся получить токен из запроса
         $token = auth()->getToken()->get();
     } catch (\Exception $e) {
-        // Если токен не найден или произошла ошибка – возвращаем 404
+        // Если токен не найден или произошла ошибка
         return response()->json(['error' => 'Token not found or invalid']);
     }
     

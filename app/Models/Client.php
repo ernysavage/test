@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use TenantCloud\LaravelBooleanSoftDeletes\SoftDeletes;
+
 
 class Client extends Model
 {
@@ -26,6 +28,7 @@ class Client extends Model
         'is_deleted' => 'boolean',
         'licence_expired_at' => 'datetime',
     ];
+    protected $softDelete = 'is_deleted';
 
     // Генерация UUID перед сохранением записи
     protected static function boot()
@@ -38,6 +41,12 @@ class Client extends Model
             }
         });
     }
+    
+    public function delete()
+    {
+        $this->is_deleted = true;
+        $this->save();
+    }
 
     // Связь с вложениями
     
@@ -46,6 +55,4 @@ class Client extends Model
         return $this->morphOne(Attachment::class, 'documentable');
     }
 }
-
-// id client 50d2660b-f63b-4288-bf7c-c56cc5e45840
-// id 
+ 

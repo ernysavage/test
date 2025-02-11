@@ -17,6 +17,7 @@ class CreateClientRequest extends BaseRequest
             'address' => 'required|string',
             'licence_expired_at' => 'required|date',
             'is_deleted' => 'required|boolean',
+            
         ];
     }
 }
