@@ -23,7 +23,7 @@ class ClientController extends Controller
      */
     public function listClients()
     {
-        $clients = $this->clientService->getAllClients();
+        $clients = $this->clientService->listClients();
         return response()->json($clients);
     }
 
@@ -84,13 +84,9 @@ class ClientController extends Controller
 
     
     public function deleteClient(DeleteClientRequest $request)
-    {
-        $result = $this->clientService->deleteClient($request);
+{
+    $validated = $request->validated(); // Получаем данные из запроса
+    return $this->clientService->deleteClient($validated['client_id']);
+}
 
-        if (isset($result['error'])) {
-            return response()->json($result, 400);
-        }
-
-        return response()->json(['message' => 'Client marked as deleted successfully'], 204);
-    }
 }
