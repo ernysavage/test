@@ -53,10 +53,10 @@ class AttachmentController extends Controller
     }
 
     // Получить вложение по ID
-    public function getAttachmentById(string $id): JsonResponse
+    public function showAttachment(string $id): JsonResponse
     {
         // Валидация attachment_id уже выполнена в GetAttachmentByIdRequest
-        $attachment = $this->attachmentService->getAttachmentById($id);
+        $attachment = $this->attachmentService->showAttachment($id);
         return response()->json($attachment);
     }
 

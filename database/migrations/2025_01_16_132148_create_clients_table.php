@@ -14,7 +14,7 @@ class CreateClientsTable extends Migration
     public function up()
     {
         Schema::create('clients', function (Blueprint $table) {
-            $table->uuid('id')->primary()->default(DB::raw('uuid_generate_v4()'))->comment('ID идентификатор клиента');
+            $table->uuid('id')->primary()->comment('ID идентификатор клиента');
             $table->string('name', 128)->comment('Имя клиента');  
             $table->text('description')->nullable()->comment('Описание клиента'); 
             $table->bigInteger('inn')->nullable()->comment('ИНН');

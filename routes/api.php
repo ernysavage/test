@@ -20,7 +20,7 @@ Route::group([
 
 Route::post('clients', [ClientController::class, 'createClient']); // Создание клиента
 Route::get('clients', [ClientController::class, 'listClients']); // Получить всех клиентов
-Route::get('clients/{client_id}', [ClientController::class, 'getClientById']); // Получить конкретного клиента
+Route::get('clients/{client_id}', [ClientController::class, 'showClient']); // Получить конкретного клиента
 Route::put('clients/{client_id}', [ClientController::class, 'updateClient']); // Обновить клиента
 Route::delete('clients/{client_id}', [ClientController::class, 'deleteClient']);
 
@@ -33,7 +33,7 @@ Route::prefix('attachments')->group(function () {
     Route::post('/', [AttachmentController::class, 'createAttachment']);
     
     // Получить вложение по ID
-    Route::get('{attachment_id}', [AttachmentController::class, 'getAttachmentById']);
+    Route::get('{attachment_id}', [AttachmentController::class, 'showAttachment']);
     
     // Обновить вложение
     Route::put('{attachment_id}', [AttachmentController::class, 'updateAttachment']);

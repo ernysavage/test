@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Services\ClientService;
@@ -7,7 +6,7 @@ use App\Services\Core\ResponseService;
 use App\Http\Requests\Client\CreateClientRequest;
 use App\Http\Requests\Client\UpdateClientRequest;
 use App\Http\Requests\Client\DeleteClientRequest;
-use App\Http\Requests\Client\GetClientByIDRequest;
+use App\Http\Requests\Client\ShowClientRequest;
 
 class ClientController extends Controller
 {
@@ -20,29 +19,41 @@ class ClientController extends Controller
         $this->responseService = $responseService;
     }
 
-    // Если ClientService уже возвращает ResponseResource с нужной структурой,
-    // то можно просто вернуть результат из сервиса:
-
+    /**
+     * Создание клиента
+     */
     public function createClient(CreateClientRequest $request)
     {
-        return $this->clientService->createClient($request);
+        return $this->clientService->createClient($request->validated());
     }
 
+    /**
+     * Получение всех клиентов
+     */
     public function listClients()
     {
         return $this->clientService->getAllClients();
     }
 
-    public function getClientById(GetClientByIDRequest $request, string $client_id)
+    /**
+     * Получение клиента по ID
+     */
+    public function showClient(ShowClientRequest $request, string $client_id)
     {
-        return $this->clientService->getClientById($client_id);
+        return $this->clientService->showClient($client_id);
     }
 
+    /**
+     * Обновление клиента
+     */
     public function updateClient(UpdateClientRequest $request, string $client_id)
     {
-        return $this->clientService->updateClient($request, $client_id);
+        return $this->clientService->updateClient($client_id, $request->validated());
     }
 
+    /**
+     * Логическое удаление клиента
+     */
     public function deleteClient(DeleteClientRequest $request, string $client_id)
     {
         return $this->clientService->deleteClient($client_id);

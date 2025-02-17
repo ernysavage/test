@@ -2,102 +2,82 @@
 namespace App\Services;
 
 use App\Models\Client;
-use App\Http\Requests\Client\CreateClientRequest;
-use App\Http\Requests\Client\UpdateClientRequest;
-use App\Http\Requests\Client\DeleteClientRequest;
-use App\Http\Requests\Client\GetClientByIDRequest;
-use App\Http\Resources\Client\DetailResource;
-use App\Http\Resources\Client\ListResource;
-use App\Http\Resources\Support\ResponseResource;
-use Illuminate\Http\Response;
+use App\Services\Core\ResponseService;
 
 class ClientService
 {
-    /**
-     * Создание клиента
-     */
-    public function createClient(CreateClientRequest $request): ResponseResource
+    protected ResponseService $responseService;
+
+    public function __construct(ResponseService $responseService)
     {
-        // Валидация данных через запрос
-        $validated = $request->validated();
-
-        // Создание клиента
-        $client = Client::create($validated);
-
-        // Возврат ответа через ресурс
-        return new ResponseResource(new DetailResource($client), 'Клиент успешно создан', true, Response::HTTP_CREATED, 'clients');
+        $this->responseService = $responseService;
     }
 
-    /**
-     * Получение клиента по ID
-     */
-    public function getClientById(string $clientId): ResponseResource
+    // Метод для создания клиента
+    public function createClient(array $validatedData)
     {
-        // Поиск клиента по ID
-        $client = Client::find($clientId);
+        // Создание нового клиента
+        $client = Client::create($validatedData);
 
-        // Если клиент не найден
+        // Ответ с успешным созданием клиента
+        return $this->responseService->success($client, 'Запись успешно создана.');
+    }
+
+    // Метод для получения всех клиентов
+    public function getAllClients()
+    {
+        // Получаем всех клиентов
+        $clients = Client::all();
+
+        // Ответ с успешным получением данных (total вычислится автоматически)
+        return $this->responseService->success($clients, 'Данные успешно получены.');
+    }
+
+    // Метод для получения клиента по ID
+    public function showClient(string $client_id)
+    {
+        // Ищем клиента по ID
+        $client = Client::find($client_id);
+
         if (!$client) {
-            return new ResponseResource(null, 'Клиент не найден', false, Response::HTTP_NOT_FOUND, 'clients');
+            return $this->responseService->error('Клиент не найден.', 404);
         }
 
-        // Возврат ответа через ресурс
-        return new ResponseResource(new DetailResource($client), 'Клиент найден', true, Response::HTTP_OK, 'clients');
+        // Ответ с данными клиента (total будет 1)
+        return $this->responseService->success($client, 'Данные успешно получены.');
     }
 
-    /**
-     * Обновление клиента
-     */
-    public function updateClient(UpdateClientRequest $request, string $clientId): ResponseResource
+    // Метод для обновления данных клиента
+    public function updateClient(string $client_id, array $validatedData)
     {
-        // Поиск клиента по ID
-        $client = Client::find($clientId);
+        // Ищем клиента по ID
+        $client = Client::find($client_id);
 
-        // Если клиент не найден
         if (!$client) {
-            return new ResponseResource(null, 'Клиент не найден', false, Response::HTTP_NOT_FOUND, 'clients');
+            return $this->responseService->error('Клиент не найден.', 404);
         }
 
-        // Валидация данных и обновление клиента
-        $validated = $request->validated();
-        $client->update($validated);
+        // Обновляем данные клиента
+        $client->update($validatedData);
 
-        // Возврат ответа через ресурс
-        return new ResponseResource(new DetailResource($client), 'Клиент успешно обновлен', true, Response::HTTP_OK, 'clients');
+        // Ответ с успешным обновлением (total будет 1)
+        return $this->responseService->success($client, 'Запись успешно обновлена.');
     }
 
-    /**
-     * Удаление клиента
-     */
-    public function deleteClient(string $clientId): ResponseResource
-    {
-        // Поиск клиента по ID
-        $client = Client::find($clientId);
+    // Метод для удаления клиента (фактическое удаление через флаг is_deleted)
+    public function deleteClient(string $client_id)
+{
+    // Ищем клиента по ID
+    $client = Client::find($client_id);
 
-        Client::where('id', '=', $clientId)->update(['is_deleted' => true]);
-
-        // Если клиент не найден
-        if (!$client) {
-            return new ResponseResource(null, 'Клиент не найден', false, Response::HTTP_NOT_FOUND, 'clients');
-        }
-
-        // Помечаем клиента как удаленного
-        $client->is_deleted = true;
-        $client->save();
-
-        // Возврат ответа через ресурс
-        return new ResponseResource(new DetailResource($client), 'Клиент успешно удален', true, Response::HTTP_OK, 'clients');
+    if (!$client) {
+        return $this->responseService->error('Клиент не найден.', 404);
     }
 
-    /**
-     * Получение всех клиентов
-     */
-    public function getAllClients(): ResponseResource
-    {
-        // Получаем всех клиентов (только не удаленные)
-        $clients = Client::where('is_deleted', false)->get();
+    // Обновляем флаг is_deleted на true (не удаляем физически)
+    $client->update(['is_deleted' => true]);
 
-        // Возвращаем коллекцию клиентов через ресурс
-        return new ResponseResource(ListResource::collection($clients), 'Список клиентов', true, Response::HTTP_OK, 'clients');
-    }
+    // Возвращаем успешный ответ с данными клиента, который имеет флаг is_deleted = true
+    return $this->responseService->success($client, 'Запись успешно удалена.');
+}
 }

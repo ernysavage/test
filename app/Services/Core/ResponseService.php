@@ -1,71 +1,41 @@
 <?php
-
 namespace App\Services\Core;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Collection;
-use Symfony\Component\HttpFoundation\Response;
 
 class ResponseService
 {
-    const OK = Response::HTTP_OK;
-    const MESSAGES = 'messages';
-
-    /**
-     * Возвращает ответ в формате JSON.
-     * @param array|string $data Данные для ответа
-     * @return JsonResponse
-     */
-    public static function responseToJson($data): JsonResponse
+    public function success($data = null, string $message = 'Запрос выполнен успешно.', int $status_code = 200, $total = null)
     {
-        return response()->json($data, $data['status_code'] ?? self::OK);
+        // Если total не передан, вычисляем его автоматически:
+        if (is_null($total)) {
+            if (is_array($data) || $data instanceof \Countable) {
+                $total = count($data);
+            } elseif (!is_null($data)) {
+                $total = 1;
+            } else {
+                $total = 0;
+            }
+        }
+        
+        return response()->json([
+            'message'     => $message,
+            'status'      => true,
+            'status_code' => $status_code,
+            'data'        => [
+                'data'  => $data,
+                'total' => $total,
+            ]
+        ], $status_code);
     }
 
-    /**
-     * Форматирует коллекцию данных в ответ.
-     *
-     * @param Collection|array $data Данные
-     * @param string|null $message Сообщение
-     * @param bool $status Статус выполнения запроса
-     * @param int $statusCode Код ответа
-     * @return JsonResponse Ответ в формате JSON
-     */
-    public static function formatCollectionResponse($data, ?string $message = null, bool $status = true, int $statusCode = self::OK): JsonResponse
+    public function error(string $message, int $status_code = 400)
     {
-        // Получаем количество элементов в коллекции (или массиве)
-        $total = ($data instanceof Collection || is_array($data)) ? count($data) : 0;
-
-        // Формируем массив данных для ответа
-        $formattedData = [
-            'message' => $message ?? 'Запрос выполнен успешно.',
-            'status' => $status,
-            'status_code' => $statusCode,
-            'data' => $data,  // Здесь уже нет лишней обертки
-            'total' => $total,
-        ];
-
-        return response()->json($formattedData, $statusCode);
-    }
-
-    /**
-     * Форматирует одиночный объект в ответ.
-     *
-     * @param mixed $data Данные
-     * @param string|null $message Сообщение
-     * @param bool $status Статус выполнения запроса
-     * @param int $statusCode Код ответа
-     * @return JsonResponse Ответ в формате JSON
-     */
-    public static function formatSingleResponse($data, ?string $message = null, bool $status = true, int $statusCode = self::OK): JsonResponse
-    {
-        $formattedData = [
-            'message' => $message ?? 'Запрос выполнен успешно.',
-            'status' => $status,
-            'status_code' => $statusCode,
-            'data' => $data,  // Здесь также нет лишней обертки
-            'total' => 1,
-        ];
-
-        return response()->json($formattedData, $statusCode);
+        return response()->json([
+            'message'     => $message,
+            'status'      => false,
+            'status_code' => $status_code,
+            'data'        => null
+        ], $status_code);
     }
 }

@@ -22,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(ResponseService::class, function ($app) {
-            return new ResponseService();
+            return new ResponseService([]); 
         });
 
         $this->app->singleton(ClientService::class, function ($app) {
