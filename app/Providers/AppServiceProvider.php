@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use App\Services\AttachmentService;
 use App\Services\AuthService;
 use App\Services\ClientService;
+use App\Services\Core\ResponseService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,8 +21,12 @@ class AppServiceProvider extends ServiceProvider
             return new AuthService();
         });
 
+        $this->app->singleton(ResponseService::class, function ($app) {
+            return new ResponseService();
+        });
+
         $this->app->singleton(ClientService::class, function ($app) {
-            return new ClientService();
+            return new ClientService($app->make(ResponseService::class));
         });
     }
 

@@ -3,90 +3,48 @@
 namespace App\Http\Controllers;
 
 use App\Services\ClientService;
+use App\Services\Core\ResponseService;
 use App\Http\Requests\Client\CreateClientRequest;
 use App\Http\Requests\Client\UpdateClientRequest;
 use App\Http\Requests\Client\DeleteClientRequest;
-use App\Http\Requests\Client\GetClientByIdRequest;
-use Illuminate\Http\Request;
+use App\Http\Requests\Client\GetClientByIDRequest;
 
 class ClientController extends Controller
 {
-    protected $clientService;
+    protected ClientService $clientService;
+    protected ResponseService $responseService;
 
-    public function __construct(ClientService $clientService)
+    public function __construct(ClientService $clientService, ResponseService $responseService)
     {
         $this->clientService = $clientService;
+        $this->responseService = $responseService;
     }
 
-    /**
-     * Получить список всех клиентов.
-     */
-    public function listClients()
-    {
-        $clients = $this->clientService->listClients();
-        return response()->json($clients);
-    }
+    // Если ClientService уже возвращает ResponseResource с нужной структурой,
+    // то можно просто вернуть результат из сервиса:
 
-    /**
-     * Создать нового клиента.
-     */
     public function createClient(CreateClientRequest $request)
     {
-        $result = $this->clientService->createClient($request);
-
-        if (isset($result['errors'])) {
-            return response()->json(['errors' => $result['errors']], 400);
-        }
-
-        return response()->json([
-            'message' => 'Client created successfully.',
-            'client'  => $result
-        ], 201);
+        return $this->clientService->createClient($request);
     }
 
-    /**
-     * Получить информацию о клиенте по ID.
-     * Здесь идентификатор извлекается внутри GetClientByIdRequest через prepareForValidation().
-     */
-    public function getClientById(GetClientByIdRequest $request)
+    public function listClients()
     {
-        $client = $this->clientService->getClientById($request);
-
-        if (isset($client['error'])) {
-            return response()->json($client, 400);
-        }
-
-        if (!$client) {
-            return response()->json(['error' => 'Client not found'], 404);
-        }
-
-        return response()->json($client);
+        return $this->clientService->getAllClients();
     }
 
-    /**
-     * Обновить данные клиента.
-     * Идентификатор клиента передаётся из URL (например, {clientId}) как второй параметр.
-     */
-    public function updateClient(UpdateClientRequest $request, $client_id)
+    public function getClientById(GetClientByIDRequest $request, string $client_id)
     {
-        $result = $this->clientService->updateClient($client_id, $request);
-
-        if (isset($result['error'])) {
-            return response()->json($result, 400);
-        }
-
-        if (!$result) {
-            return response()->json(['error' => 'Client not found'], 404);
-        }
-
-        return response()->json($result);
+        return $this->clientService->getClientById($client_id);
     }
 
-    
-    public function deleteClient(DeleteClientRequest $request)
-{
-    $validated = $request->validated(); // Получаем данные из запроса
-    return $this->clientService->deleteClient($validated['client_id']);
-}
+    public function updateClient(UpdateClientRequest $request, string $client_id)
+    {
+        return $this->clientService->updateClient($request, $client_id);
+    }
 
+    public function deleteClient(DeleteClientRequest $request, string $client_id)
+    {
+        return $this->clientService->deleteClient($client_id);
+    }
 }

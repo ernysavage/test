@@ -2,28 +2,55 @@
 namespace App\Http\Resources\Support;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Collection;
 
 class ResponseResource extends JsonResource
 {
-    protected ?string $message;
-    protected bool $status;
-    protected int $statusCode;
+    public $message;
+    public $status;
+    public $statusCode;
+    public $modelName;
 
-    public function __construct($resource, ?string $message = null, bool $status = true, int $statusCode = 200)
+    public function __construct($resource, ?string $message = null, bool $status = true, int $statusCode = 200, ?string $modelName = 'data')
     {
-        parent::__construct($resource);
+        if ($resource instanceof ResourceCollection || $resource instanceof Collection) {
+            parent::__construct($resource);
+        } else {
+            parent::__construct(collect([$resource]));
+        }
+
         $this->message = $message;
         $this->status = $status;
         $this->statusCode = $statusCode;
+        $this->modelName = $modelName;
     }
 
     public function toArray($request)
+
     {
-        return [
-            'message'     => $this->message,
-            'status'      => $this->status,
-            'status_code' => $this->statusCode,
-            'client'      => $this->resource, // Теперь `client` без лишней вложенности
-        ];
-    }
+        $resource = $this->resource;
+
+        if ($resource instanceof Collection || $resource instanceof ResourceCollection) {
+            return [
+                'message' => $this->message,
+                'status' => $this->status,
+                'status_code' => $this->statusCode,
+                'data' => [
+                    $this->modelName => $resource,
+                    'total' => $resource->count(), // Подсчитываем количество для коллекции
+                ],
+            ];
+        } else {
+            return [
+                'message' => $this->message,
+                'status' => $this->status,
+                'status_code' => $this->statusCode,
+                'data' => [
+                    $this->modelName => $resource,
+                    'total' => 1, // Если это одиночный объект
+                ],
+            ];
+        }
+}
 }

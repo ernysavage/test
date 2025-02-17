@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services;
 
 use App\Models\Client;
@@ -7,64 +6,98 @@ use App\Http\Requests\Client\CreateClientRequest;
 use App\Http\Requests\Client\UpdateClientRequest;
 use App\Http\Requests\Client\DeleteClientRequest;
 use App\Http\Requests\Client\GetClientByIDRequest;
-use App\Http\Resources\Client\ListResource;
 use App\Http\Resources\Client\DetailResource;
+use App\Http\Resources\Client\ListResource;
 use App\Http\Resources\Support\ResponseResource;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Response;
 
 class ClientService
 {
-    public function createClient(CreateClientRequest $request)
+    /**
+     * Создание клиента
+     */
+    public function createClient(CreateClientRequest $request): ResponseResource
     {
+        // Валидация данных через запрос
         $validated = $request->validated();
+
+        // Создание клиента
         $client = Client::create($validated);
-    
-        return new ResponseResource(new DetailResource($client), 'Client created successfully');
+
+        // Возврат ответа через ресурс
+        return new ResponseResource(new DetailResource($client), 'Клиент успешно создан', true, Response::HTTP_CREATED, 'clients');
     }
-    
-    public function getClientById(GetClientByIDRequest $request)
+
+    /**
+     * Получение клиента по ID
+     */
+    public function getClientById(string $clientId): ResponseResource
     {
-        $validated = $request->validated();
-        $client = Client::find($validated['client_id']);
-    
-        if (!$client) {
-            return new ResponseResource(null, 'Client not found', false, Response::HTTP_NOT_FOUND);
-        }
-    
-        return new ResponseResource(new DetailResource($client));
-    }
-    
-    public function updateClient($clientId, UpdateClientRequest $request)
-    {
+        // Поиск клиента по ID
         $client = Client::find($clientId);
-    
+
+        // Если клиент не найден
         if (!$client) {
-            return new ResponseResource(null, 'Client not found', false, Response::HTTP_NOT_FOUND);
+            return new ResponseResource(null, 'Клиент не найден', false, Response::HTTP_NOT_FOUND, 'clients');
         }
-    
-        $validated = $request->validated();
-        if (!empty($validated)) {
-            $client->update($validated);
-        }
-    
-        return new ResponseResource(new DetailResource($client), 'Client updated successfully');
+
+        // Возврат ответа через ресурс
+        return new ResponseResource(new DetailResource($client), 'Клиент найден', true, Response::HTTP_OK, 'clients');
     }
-    
+
+    /**
+     * Обновление клиента
+     */
+    public function updateClient(UpdateClientRequest $request, string $clientId): ResponseResource
+    {
+        // Поиск клиента по ID
+        $client = Client::find($clientId);
+
+        // Если клиент не найден
+        if (!$client) {
+            return new ResponseResource(null, 'Клиент не найден', false, Response::HTTP_NOT_FOUND, 'clients');
+        }
+
+        // Валидация данных и обновление клиента
+        $validated = $request->validated();
+        $client->update($validated);
+
+        // Возврат ответа через ресурс
+        return new ResponseResource(new DetailResource($client), 'Клиент успешно обновлен', true, Response::HTTP_OK, 'clients');
+    }
+
+    /**
+     * Удаление клиента
+     */
     public function deleteClient(string $clientId): ResponseResource
     {
-        $client = Client::where('id', $clientId)->firstOrFail();
+        // Поиск клиента по ID
+        $client = Client::find($clientId);
+
+        Client::where('id', '=', $clientId)->update(['is_deleted' => true]);
+
+        // Если клиент не найден
+        if (!$client) {
+            return new ResponseResource(null, 'Клиент не найден', false, Response::HTTP_NOT_FOUND, 'clients');
+        }
+
+        // Помечаем клиента как удаленного
         $client->is_deleted = true;
         $client->save();
-    
-        return new ResponseResource(new DetailResource($client), 'Клиент успешно удалён.');
+
+        // Возврат ответа через ресурс
+        return new ResponseResource(new DetailResource($client), 'Клиент успешно удален', true, Response::HTTP_OK, 'clients');
     }
 
-    // Добавляем метод getAllClients
-    public function getAllClients()
+    /**
+     * Получение всех клиентов
+     */
+    public function getAllClients(): ResponseResource
     {
-        $clients = Client::all();  // Получаем всех клиентов
-        return new ResponseResource(ListResource::collection($clients));  // Возвращаем коллекцию клиентов в нужном формате
+        // Получаем всех клиентов (только не удаленные)
+        $clients = Client::where('is_deleted', false)->get();
+
+        // Возвращаем коллекцию клиентов через ресурс
+        return new ResponseResource(ListResource::collection($clients), 'Список клиентов', true, Response::HTTP_OK, 'clients');
     }
 }
-
