@@ -19,7 +19,7 @@ Route::group([
 });
 
 Route::post('clients', [ClientController::class, 'createClient']); // Создание клиента
-Route::get('clients', [ClientController::class, 'listClients']); // Получить всех клиентов
+Route::get('clients', [ClientController::class, 'indexClients']); // Получить всех клиентов
 Route::get('clients/{client_id}', [ClientController::class, 'showClient']); // Получить конкретного клиента
 Route::put('clients/{client_id}', [ClientController::class, 'updateClient']); // Обновить клиента
 Route::delete('clients/{client_id}', [ClientController::class, 'deleteClient']);
@@ -27,7 +27,7 @@ Route::delete('clients/{client_id}', [ClientController::class, 'deleteClient']);
 
 Route::prefix('attachments')->group(function () {
     // Получить все вложения
-    Route::get('/', [AttachmentController::class, 'getAllAttachments']);
+    Route::get('/', [AttachmentController::class, 'indexAttachment']);
     
     // Создать новое вложение
     Route::post('/', [AttachmentController::class, 'createAttachment']);
@@ -42,7 +42,7 @@ Route::prefix('attachments')->group(function () {
     Route::delete('{attachment_id}', [AttachmentController::class, 'deleteAttachment']);
     
     // Скачать файл для пользователя
-    Route::get('{user_id}/download', [AttachmentController::class, 'downloadByUserID']);
+    Route::get('download/{user_id}', [AttachmentController::class, 'downloadAttachment']);
 });
 
 

@@ -24,7 +24,7 @@ class ClientService
     }
 
     // Метод для получения всех клиентов
-    public function getAllClients()
+    public function indexClients()
     {
         // Получаем всех клиентов
         $clients = Client::all();

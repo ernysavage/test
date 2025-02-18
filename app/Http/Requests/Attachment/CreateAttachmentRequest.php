@@ -11,7 +11,7 @@ class CreateAttachmentRequest extends BaseRequest
             'documentable_id' => 'required|uuid|exists:clients,id', // ID клиента должно быть валидным UUID и существовать в таблице clients
             'documentable_type' => 'required|string|in:App\Models\Client', // тип документа должен быть Client
             'file' => 'required|file',
-            'name' => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
             'user_id' => 'required|uuid|exists:clients,id',
             'number_document' => 'nullable|string|max:255',
             'register_number' => 'nullable|string|max:255',

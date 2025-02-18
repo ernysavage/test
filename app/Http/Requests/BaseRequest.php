@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\Validator;
@@ -20,11 +19,20 @@ class BaseRequest extends FormRequest
      * Подготовка данных перед валидацией.
      */
     protected function prepareForValidation()
-    {
-        $this->merge([
-            'client_id' => $this->route('client_id'),
-        ]);
-    }
+{
+    $attachmentId = $this->route('attachment_id');
+    $clientId = $this->route('client_id');
+    $userId = $this->route('user_id');
+
+      // Проверим, что данные передаются
+
+    $this->merge([
+        'attachment_id' => $attachmentId ?? null,
+        'client_id' => $clientId ?? null,
+        'user_id' => $userId ?? null,
+    ]);
+     
+}
 
     /**
      * Локализованные названия атрибутов (для сообщений об ошибках).

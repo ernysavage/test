@@ -30,9 +30,9 @@ class ClientController extends Controller
     /**
      * Получение всех клиентов
      */
-    public function listClients()
+    public function indexClients()
     {
-        return $this->clientService->getAllClients();
+        return $this->clientService->indexClients();
     }
 
     /**

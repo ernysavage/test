@@ -14,11 +14,11 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AttachmentService::class, function ($app) {
-            return new AttachmentService();
+            return new AttachmentService($app->make(ResponseService::class));
         });
 
         $this->app->singleton(AuthService::class, function ($app) {
-            return new AuthService();
+            return new AuthService($app->make(ResponseService::class));
         });
 
         $this->app->singleton(ResponseService::class, function ($app) {

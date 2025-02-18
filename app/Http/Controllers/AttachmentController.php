@@ -1,69 +1,105 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Attachment\CreateAttachmentRequest;
 use App\Http\Requests\Attachment\UpdateAttachmentRequest;
 use App\Http\Requests\Attachment\DeleteAttachmentRequest;
-use App\Http\Requests\Attachment\DownloadAttachmentByIdRequest;
-use App\Http\Requests\Attachment\GetAttachmentByIdRequest;
+use App\Http\Requests\Attachment\ShowAttachmentRequest;
+use App\Http\Requests\Attachment\ListAttachmentRequest;
+use App\Http\Requests\Attachment\DownloadAttachmentRequest;
 use App\Services\AttachmentService;
+use App\Services\Core\ResponseService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
+use App\Http\Resources\Attachment\ListResource;
+use App\Http\Resources\Attachment\DetailResource;
 
 class AttachmentController extends Controller
 {
     protected $attachmentService;
+    protected $responseService;
 
-    public function __construct(AttachmentService $attachmentService)
+    public function __construct(AttachmentService $attachmentService, ResponseService $responseService)
     {
         $this->attachmentService = $attachmentService;
+        $this->responseService = $responseService;
     }
 
     // Получить все вложения
-    public function getAllAttachments(): JsonResponse
+    public function indexAttachment(ListAttachmentRequest $request): JsonResponse
     {
-        $attachments = $this->attachmentService->getAllAttachments();
-        return response()->json($attachments);
+        // Валидация данных
+        $validatedData = $request->validated();  
+
+        // Получаем данные от сервиса
+        $attachments = $this->attachmentService->indexAttachments($validatedData);
+
+        // Возвращаем ответ через ResponseService
+        return $this->responseService->success(ListResource::collection($attachments));
     }
 
     // Создать вложение
     public function createAttachment(CreateAttachmentRequest $request): JsonResponse
-    {
-        
-        $attachment = $this->attachmentService->createAttachment($request->validated());
-        return response()->json($attachment, 201);
+{
+    // Валидация данных
+    $validatedData = $request->validated();
+
+    try {
+        // Передаем данные в сервис
+        $attachment = $this->attachmentService->createAttachment($validatedData);
+
+        // Возвращаем успешный ответ
+        return $this->responseService->success(new DetailResource($attachment), 'Вложение успешно создано.', 201);
+    } catch (\Exception $e) {
+        // В случае ошибки возвращаем сообщение
+        return $this->responseService->error($e->getMessage(), 400);
     }
+}
 
     // Обновить вложение
     public function updateAttachment(UpdateAttachmentRequest $request, string $id): JsonResponse
     {
-        // Валидация данных из запроса уже выполнена в UpdateAttachmentRequest
-        $attachment = $this->attachmentService->updateAttachment($id, $request->validated());
-        return response()->json($attachment);
+        // Валидация данных
+        $validatedData = $request->validated();  
+
+        // Получаем данные от сервиса
+        $attachment = $this->attachmentService->updateAttachment($id, $validatedData);
+
+        // Возвращаем ответ через ResponseService
+        return $this->responseService->success(new DetailResource($attachment), 'Вложение успешно обновлено.');
     }
 
     // Удалить вложение
-    public function deleteAttachment(string $id): JsonResponse
+    public function deleteAttachment(DeleteAttachmentRequest $request, string $id): JsonResponse
     {
-        // Валидация attachment_id уже выполнена в DeleteAttachmentRequest
+        // Валидация данных
+        $validatedData = $request->validated();  
+
+        // Удаляем вложение через сервис
         $this->attachmentService->deleteAttachment($id);
-        return response()->json(null, 204); // Возвращаем пустой ответ с кодом 204
+
+        // Возвращаем пустой ответ с кодом 204
+        return $this->responseService->success(null, 'Вложение успешно удалено.', 204);
     }
 
     // Получить вложение по ID
-    public function showAttachment(string $id): JsonResponse
+    public function showAttachment(ShowAttachmentRequest $request, int $id): JsonResponse
     {
-        // Валидация attachment_id уже выполнена в GetAttachmentByIdRequest
+        // Валидация данных
+        $validatedData = $request->validated();  
+
+        // Получаем данные от сервиса
         $attachment = $this->attachmentService->showAttachment($id);
-        return response()->json($attachment);
+
+        // Возвращаем ответ через ResponseService
+        return $this->responseService->success(new DetailResource($attachment));
     }
 
     // Скачать вложение по ID пользователя
-    public function downloadByUserID(DownloadAttachmentByIdRequest $request, string $user_id)
-    {
-        // Валидация данных из запроса уже выполнена в DownloadAttachmentRequest
-        return $this->attachmentService->downloadByUserId($user_id);
-    }
+    public function downloadAttachment(DownloadAttachmentRequest $request, string $user_id)
+{
+    // Валидация данных уже выполнена
+    return $this->attachmentService->downloadByUserId($user_id);
+}
+
+
 }

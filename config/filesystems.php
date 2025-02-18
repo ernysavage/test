@@ -10,7 +10,7 @@ return [
 
         'local' => [
             'driver' => 'local',
-            'root' => storage_path('app/private'),
+            'root' => storage_path('app'),
             'serve' => true,
             'throw' => false,
         ],
@@ -42,6 +42,14 @@ return [
     'links' => [
         public_path('storage') => storage_path('app/public'),
     ],
+
+
+    'secure_files' => [
+        'driver' => 'local',
+        'root' => env('FILES_STORAGE_PATH', storage_path('app/secure_files')),
+        
+    ],
+
 
     
 ];
